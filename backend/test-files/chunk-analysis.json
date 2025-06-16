@@ -1,0 +1,394 @@
+{
+  "document": {
+    "title": "API Documentation Guide",
+    "processingMethod": "langchain_docling_txt",
+    "totalLength": 1979
+  },
+  "chunks": [
+    {
+      "id": "chunk_1748865180584_1",
+      "type": "mixed",
+      "contentPreview": "API Documentation Guide\nThis comprehensive guide covers API development and implementation.\n\nIntroduction\nAPIs (Application Programming Interfaces) are essential for modern software development. They ...",
+      "metadata": {
+        "chunkId": "chunk_1748865180584_1",
+        "chunkIndex": 0,
+        "chunkType": "mixed",
+        "topics": [
+          "Security"
+        ],
+        "entities": [],
+        "keywords": [
+          "documentation",
+          "guide",
+          "comprehensive",
+          "covers",
+          "development",
+          "implementation",
+          "introduction",
+          "apis",
+          "application",
+          "programming"
+        ],
+        "headingContext": [
+          {
+            "level": 1,
+            "title": "API Documentation Guide",
+            "line": 0
+          },
+          {
+            "level": 2,
+            "title": "Authentication",
+            "line": 12
+          },
+          {
+            "level": 3,
+            "title": "JWT Tokens",
+            "line": 16
+          }
+        ],
+        "documentSection": "JWT Tokens",
+        "contentLength": 546,
+        "wordCount": 73,
+        "complexityLevel": "intermediate",
+        "questionTypes": [
+          "definition",
+          "explanation"
+        ],
+        "audience": [
+          "developers"
+        ],
+        "prerequisites": [
+          "basic understanding of previous sections",
+          "API knowledge",
+          "security fundamentals"
+        ],
+        "relatedConcepts": [
+          "technical-implementation"
+        ],
+        "sourceDocument": {
+          "title": "Unknown",
+          "fileType": "txt",
+          "processingMethod": "langchain_docling_txt",
+          "totalLength": 1979
+        },
+        "createdAt": "2025-06-02T11:53:00.593Z",
+        "processingVersion": "1.0.0"
+      },
+      "relationships": {
+        "sequential": {
+          "previous": null,
+          "next": "chunk_1748865180584_2"
+        },
+        "hierarchical": {
+          "parent": null,
+          "children": [],
+          "siblings": [
+            "chunk_1748865180584_2"
+          ]
+        },
+        "topical": [],
+        "references": []
+      },
+      "overlap": {
+        "hasPrevious": false,
+        "hasNext": true
+      }
+    },
+    {
+      "id": "chunk_1748865180584_2",
+      "type": "mixed",
+      "contentPreview": "JSON Web Tokens (JWT) are a popular method for API authentication. Here's how to implement JWT:\n\n```javascript\n\nconst jwt = require('jsonwebtoken');\n\nfunction generateToken(user) {\n  return jwt.sign({...",
+      "metadata": {
+        "chunkId": "chunk_1748865180584_2",
+        "chunkIndex": 1,
+        "chunkType": "mixed",
+        "topics": [
+          "API Development",
+          "Database",
+          "Security",
+          "Programming",
+          "User Management",
+          "Process"
+        ],
+        "entities": [
+          {
+            "type": "code",
+            "value": "```javascript\n\nconst jwt = require('jsonwebtoken');\n\nfunction generateToken(user) {\n  return jwt.sign({ userId: user.id }, process.env.JWT_SECRET);\n}\n\n```"
+          }
+        ],
+        "keywords": [
+          "json",
+          "tokens",
+          "popular",
+          "method",
+          "authentication",
+          "implement",
+          "javascript",
+          "const",
+          "require",
+          "jsonwebtoken"
+        ],
+        "headingContext": [
+          {
+            "level": 1,
+            "title": "API Documentation Guide",
+            "line": 0
+          },
+          {
+            "level": 2,
+            "title": "Database Integration",
+            "line": 36
+          },
+          {
+            "level": 3,
+            "title": "Connection Setup",
+            "line": 40
+          }
+        ],
+        "documentSection": "Connection Setup",
+        "contentLength": 602,
+        "wordCount": 87,
+        "complexityLevel": "advanced",
+        "questionTypes": [
+          "how-to",
+          "procedure"
+        ],
+        "audience": [
+          "developers",
+          "end-users",
+          "business-users"
+        ],
+        "prerequisites": [
+          "basic understanding of previous sections",
+          "API knowledge",
+          "database concepts",
+          "security fundamentals"
+        ],
+        "relatedConcepts": [
+          "technical-implementation",
+          "process-management",
+          "user-management"
+        ],
+        "sourceDocument": {
+          "title": "Unknown",
+          "fileType": "txt",
+          "processingMethod": "langchain_docling_txt",
+          "totalLength": 1979
+        },
+        "createdAt": "2025-06-02T11:53:00.594Z",
+        "processingVersion": "1.0.0"
+      },
+      "relationships": {
+        "sequential": {
+          "previous": "chunk_1748865180584_1",
+          "next": "chunk_1748865180584_3"
+        },
+        "hierarchical": {
+          "parent": null,
+          "children": [],
+          "siblings": [
+            "chunk_1748865180584_1"
+          ]
+        },
+        "topical": [],
+        "references": []
+      },
+      "overlap": {
+        "hasPrevious": true,
+        "hasNext": true
+      }
+    },
+    {
+      "id": "chunk_1748865180584_3",
+      "type": "mixed",
+      "contentPreview": "1. Install database driver\n2. Configure connection parameters\n3. Establish connection pool\n4. Handle connection errors\n\nQuery Examples\n| Operation | SQL Example | Description |\n|-----------|----------...",
+      "metadata": {
+        "chunkId": "chunk_1748865180584_3",
+        "chunkIndex": 2,
+        "chunkType": "mixed",
+        "topics": [
+          "Database",
+          "User Management"
+        ],
+        "entities": [],
+        "keywords": [
+          "install",
+          "database",
+          "driver",
+          "configure",
+          "connection",
+          "parameters",
+          "establish",
+          "pool",
+          "handle",
+          "errors"
+        ],
+        "headingContext": [
+          {
+            "level": 1,
+            "title": "API Documentation Guide",
+            "line": 0
+          },
+          {
+            "level": 2,
+            "title": "Error Handling",
+            "line": 58
+          }
+        ],
+        "documentSection": "Error Handling",
+        "contentLength": 534,
+        "wordCount": 89,
+        "complexityLevel": "intermediate",
+        "questionTypes": [
+          "general"
+        ],
+        "audience": [
+          "developers",
+          "administrators",
+          "end-users"
+        ],
+        "prerequisites": [
+          "API knowledge",
+          "database concepts"
+        ],
+        "relatedConcepts": [
+          "technical-implementation",
+          "user-management"
+        ],
+        "sourceDocument": {
+          "title": "Unknown",
+          "fileType": "txt",
+          "processingMethod": "langchain_docling_txt",
+          "totalLength": 1979
+        },
+        "createdAt": "2025-06-02T11:53:00.594Z",
+        "processingVersion": "1.0.0"
+      },
+      "relationships": {
+        "sequential": {
+          "previous": "chunk_1748865180584_2",
+          "next": "chunk_1748865180584_4"
+        },
+        "hierarchical": {
+          "parent": null,
+          "children": [],
+          "siblings": [
+            "chunk_1748865180584_4"
+          ]
+        },
+        "topical": [],
+        "references": []
+      },
+      "overlap": {
+        "hasPrevious": true,
+        "hasNext": true
+      }
+    },
+    {
+      "id": "chunk_1748865180584_4",
+      "type": "mixed",
+      "contentPreview": "- Use appropriate HTTP status codes\n- Provide meaningful error messages\n- Log errors for debugging\n- Implement retry mechanisms\n\nConclusion\nThis guide provides a foundation for API development. For ad...",
+      "metadata": {
+        "chunkId": "chunk_1748865180584_4",
+        "chunkIndex": 3,
+        "chunkType": "mixed",
+        "topics": [
+          "API Development"
+        ],
+        "entities": [],
+        "keywords": [
+          "appropriate",
+          "http",
+          "status",
+          "codes",
+          "provide",
+          "meaningful",
+          "error",
+          "messages",
+          "errors",
+          "debugging"
+        ],
+        "headingContext": [
+          {
+            "level": 1,
+            "title": "API Documentation Guide",
+            "line": 0
+          },
+          {
+            "level": 2,
+            "title": "Conclusion",
+            "line": 67
+          }
+        ],
+        "documentSection": "Conclusion",
+        "contentLength": 253,
+        "wordCount": 38,
+        "complexityLevel": "beginner",
+        "questionTypes": [
+          "general"
+        ],
+        "audience": [
+          "developers"
+        ],
+        "prerequisites": [
+          "API knowledge"
+        ],
+        "relatedConcepts": [],
+        "sourceDocument": {
+          "title": "Unknown",
+          "fileType": "txt",
+          "processingMethod": "langchain_docling_txt",
+          "totalLength": 1979
+        },
+        "createdAt": "2025-06-02T11:53:00.594Z",
+        "processingVersion": "1.0.0"
+      },
+      "relationships": {
+        "sequential": {
+          "previous": "chunk_1748865180584_3",
+          "next": null
+        },
+        "hierarchical": {
+          "parent": null,
+          "children": [],
+          "siblings": [
+            "chunk_1748865180584_3"
+          ]
+        },
+        "topical": [],
+        "references": []
+      },
+      "overlap": {
+        "hasPrevious": true,
+        "hasNext": false
+      }
+    }
+  ],
+  "statistics": {
+    "totalChunks": 4,
+    "chunkTypes": [
+      "mixed"
+    ],
+    "avgChunkSize": 484,
+    "topicsFound": [
+      "Security",
+      "API Development",
+      "Database",
+      "Programming",
+      "User Management",
+      "Process"
+    ],
+    "complexityLevels": [
+      "intermediate",
+      "advanced",
+      "beginner"
+    ],
+    "audienceTypes": [
+      "developers",
+      "end-users",
+      "business-users",
+      "administrators"
+    ],
+    "totalRelationships": 0
+  }
+}

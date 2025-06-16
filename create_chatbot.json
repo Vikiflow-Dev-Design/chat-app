@@ -1,0 +1,6 @@
+{
+  "name": "Test Chatbot",
+  "description": "A test chatbot created via API",
+  "initialMessage": "Hello! How can I help you today?",
+  "behaviorPrompt": "You are a helpful assistant that provides information about our products and services."
+}

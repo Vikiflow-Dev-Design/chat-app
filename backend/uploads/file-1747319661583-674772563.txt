@@ -1,0 +1,44 @@
+first the user should be able to signup or signin
+
+1.
+about how deep the html element analysis, it shoud be able to target the parent html element and all it's children element
+
+it should also be able to go full dom tree
+
+the user should be able to chose how to see or get the css, e.g(css or scss or inline style or tailwind.css)
+
+we should be able to focus on all styles
+
+When identifying tools and packages the user should identify all,
+
+recommendations based on its analysis should be optional
+
+2.
+the user should be able to interact with the extension through both, the user should be able to chose how to interact with the extension
+
+extension should work when activated by the user
+
+visual representations of the page structure will be decided later
+
+3.
+
+store user informations and login details
+
+yes
+
+4.
+
+it should be activated by the user
+
+6.
+
+export functionality shoud be html format
+
+extension should be able to inspect the html and css to be able to copy code or export
+
+10 
+
+premium and freemium models
+
+
+

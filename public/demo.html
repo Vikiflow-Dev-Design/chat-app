@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Widget Demo</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #7c3aed;
+        margin-bottom: 30px;
+      }
+      .section {
+        margin-bottom: 40px;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #f9fafb;
+      }
+      code {
+        display: block;
+        background-color: #1f2937;
+        color: #e5e7eb;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 20px 0;
+      }
+      .button {
+        background-color: #7c3aed;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .button:hover {
+        background-color: #6d28d9;
+      }
+      .feature-list {
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+      .feature-list li {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chat Widget Demo</h1>
+
+    <div class="section">
+      <h2>Features</h2>
+      <ul class="feature-list">
+        <li>
+          <strong>Conversation History:</strong> The widget shows conversation
+          history for returning visitors.
+        </li>
+        <li>
+          <strong>Automatic New Chat:</strong> For first-time visitors, it
+          automatically starts a new conversation.
+        </li>
+        <li>
+          <strong>Persistent Sessions:</strong> Conversations are stored and can
+          be continued across visits.
+        </li>
+        <li>
+          <strong>Embedded Experience:</strong> The entire chat experience
+          happens within the widget on your website.
+        </li>
+        <li>
+          <strong>Responsive Design:</strong> Works well on both desktop and
+          mobile devices.
+        </li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>How to Embed the Chat Widget</h2>
+      <p>Add the following code to your website to embed the chat widget:</p>
+      <code>
+        &lt;!-- Chat Widget --&gt;<br />
+        &lt;link rel="stylesheet" href="http://localhost:8080/widget.css"&gt;<br />
+        &lt;script src="http://localhost:8080/widget.js"&gt;&lt;/script&gt;<br />
+        &lt;script&gt;<br />
+        &nbsp;&nbsp;document.addEventListener('DOMContentLoaded', function()
+        {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;initChatWidget('680cef107640794a082542b1');<br />
+        &nbsp;&nbsp;});<br />
+        &lt;/script&gt;
+      </code>
+      <p>
+        Replace <strong>'680cef107640794a082542b1'</strong> with your actual
+        chatbot ID.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Customization Options</h2>
+      <p>
+        You can customize the appearance of the widget by adding your own CSS:
+      </p>
+      <code>
+        &lt;style&gt;<br />
+        &nbsp;&nbsp;/* Change button color */<br />
+        &nbsp;&nbsp;.chat-widget-button {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;background-color: #2563eb;<br />
+        &nbsp;&nbsp;}<br />
+        <br />
+        &nbsp;&nbsp;/* Change panel width */<br />
+        &nbsp;&nbsp;.chat-widget-panel {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;width: 400px;<br />
+        &nbsp;&nbsp;}<br />
+        <br />
+        &nbsp;&nbsp;/* Change header color */<br />
+        &nbsp;&nbsp;.chat-widget-header {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;background-color: #2563eb;<br />
+        &nbsp;&nbsp;}<br />
+        <br />
+        &nbsp;&nbsp;/* Change user message color */<br />
+        &nbsp;&nbsp;.chat-message-user {<br />
+        &nbsp;&nbsp;&nbsp;&nbsp;background-color: #2563eb;<br />
+        &nbsp;&nbsp;}<br />
+        &lt;/style&gt;
+      </code>
+    </div>
+
+    <div class="section">
+      <h2>How It Works</h2>
+      <p>
+        The chat widget uses a visitor ID stored in localStorage to identify
+        returning users. When a visitor clicks the chat button:
+      </p>
+      <ol>
+        <li>
+          If they have previous conversations, the widget shows their
+          conversation history.
+        </li>
+        <li>
+          If they have no previous conversations, it automatically starts a new
+          chat.
+        </li>
+        <li>
+          All conversations are stored in the database and associated with the
+          visitor ID.
+        </li>
+        <li>
+          The visitor can switch between past conversations or start new ones.
+        </li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2>Test the Widget</h2>
+      <p>Click the button below to initialize the chat widget on this page:</p>
+      <button id="init-widget" class="button">Initialize Chat Widget</button>
+    </div>
+
+    <script>
+      document
+        .getElementById("init-widget")
+        .addEventListener("click", function () {
+          // Load the widget CSS
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = "/widget.css";
+          document.head.appendChild(link);
+
+          // Load the widget script
+          const script = document.createElement("script");
+          script.src = "/widget.js";
+          document.body.appendChild(script);
+
+          // Initialize the widget when the script is loaded
+          script.onload = function () {
+            initChatWidget("680cef107640794a082542b1");
+            document.getElementById("init-widget").disabled = true;
+            document.getElementById("init-widget").textContent =
+              "Widget Initialized";
+          };
+        });
+    </script>
+  </body>
+</html>
