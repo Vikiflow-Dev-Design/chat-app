@@ -102,7 +102,6 @@ class MetadataCacheService {
           chunk_type,
           document_section,
           heading_context,
-          metadata,
           content_length,
           word_count,
           created_at,
@@ -161,8 +160,8 @@ class MetadataCacheService {
           audience: this.parseJsonField(metadata.audience, []),
           prerequisites: this.parseJsonField(metadata.prerequisites, []),
           related_concepts: this.parseJsonField(metadata.related_concepts, []),
-          // Original metadata from main table
-          original_metadata: chunk.metadata || {},
+          // Note: original_metadata field not available in current table structure
+          original_metadata: {},
         };
       });
 

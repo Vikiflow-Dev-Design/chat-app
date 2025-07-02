@@ -1,4 +1,4 @@
-const chunkStorage = require("../supabaseChunkStorage");
+const SupabaseChunkStorage = require("../supabaseChunkStorage");
 
 /**
  * Chunk Retrieval Service
@@ -7,6 +7,7 @@ const chunkStorage = require("../supabaseChunkStorage");
 class ChunkRetrievalService {
   constructor() {
     this.maxChunksPerQuery = 10; // Safety limit
+    this.chunkStorage = new SupabaseChunkStorage();
   }
 
   /**
@@ -24,17 +25,22 @@ class ChunkRetrievalService {
 
       // Safety check - limit number of chunks
       if (chunkIds.length > this.maxChunksPerQuery) {
-        console.log(`⚠️ Too many chunks requested (${chunkIds.length}), limiting to ${this.maxChunksPerQuery}`);
+        console.log(
+          `⚠️ Too many chunks requested (${chunkIds.length}), limiting to ${this.maxChunksPerQuery}`
+        );
         chunkIds = chunkIds.slice(0, this.maxChunksPerQuery);
       }
 
-      console.log(`📦 Retrieving ${chunkIds.length} chunks for chatbot: ${chatbotId}`);
+      console.log(
+        `📦 Retrieving ${chunkIds.length} chunks for chatbot: ${chatbotId}`
+      );
       console.log(`🔍 Chunk IDs: ${chunkIds.join(", ")}`);
 
       // Fetch chunks from Supabase
-      const { data: chunks, error } = await chunkStorage.supabase
+      const { data: chunks, error } = await this.chunkStorage.supabase
         .from("chatbot_knowledge_chunks")
-        .select(`
+        .select(
+          `
           id,
           document_id,
           chunk_index,
@@ -44,10 +50,10 @@ class ChunkRetrievalService {
           heading_context,
           content_length,
           word_count,
-          metadata,
           created_at,
           updated_at
-        `)
+        `
+        )
         .eq("chatbot_id", chatbotId)
         .in("id", chunkIds)
         .order("chunk_index", { ascending: true });
@@ -63,7 +69,7 @@ class ChunkRetrievalService {
       }
 
       // Transform chunks and ensure they're in the requested order
-      const transformedChunks = chunks.map(chunk => ({
+      const transformedChunks = chunks.map((chunk) => ({
         id: chunk.id,
         document_id: chunk.document_id,
         chunk_index: chunk.chunk_index,
@@ -75,21 +81,27 @@ class ChunkRetrievalService {
         word_count: chunk.word_count || this.countWords(chunk.content),
         metadata: chunk.metadata || {},
         created_at: chunk.created_at,
-        updated_at: chunk.updated_at
+        updated_at: chunk.updated_at,
       }));
 
       // Sort chunks to match the requested order
-      const orderedChunks = this.orderChunksByRequestedIds(transformedChunks, chunkIds);
+      const orderedChunks = this.orderChunksByRequestedIds(
+        transformedChunks,
+        chunkIds
+      );
 
       console.log(`✅ Successfully retrieved ${orderedChunks.length} chunks`);
-      
+
       // Log chunk details for debugging
       orderedChunks.forEach((chunk, index) => {
-        console.log(`   ${index + 1}. Chunk ${chunk.chunk_index + 1} (${chunk.id}): ${chunk.content_length} chars`);
+        console.log(
+          `   ${index + 1}. Chunk ${chunk.chunk_index + 1} (${chunk.id}): ${
+            chunk.content_length
+          } chars`
+        );
       });
 
       return orderedChunks;
-
     } catch (error) {
       console.error(`❌ Error retrieving chunks by IDs:`, error);
       throw new Error(`Chunk retrieval failed: ${error.message}`);
@@ -107,9 +119,10 @@ class ChunkRetrievalService {
     try {
       console.log(`📄 Retrieving chunks for document: ${documentId}`);
 
-      const { data: chunks, error } = await chunkStorage.supabase
+      const { data: chunks, error } = await this.chunkStorage.supabase
         .from("chatbot_knowledge_chunks")
-        .select(`
+        .select(
+          `
           id,
           document_id,
           chunk_index,
@@ -120,18 +133,20 @@ class ChunkRetrievalService {
           content_length,
           word_count,
           metadata
-        `)
+        `
+        )
         .eq("chatbot_id", chatbotId)
         .like("document_id", `%${documentId}%`)
         .order("chunk_index", { ascending: true })
         .limit(limit);
 
       if (error) {
-        throw new Error(`Failed to retrieve chunks by document: ${error.message}`);
+        throw new Error(
+          `Failed to retrieve chunks by document: ${error.message}`
+        );
       }
 
       return chunks || [];
-
     } catch (error) {
       console.error(`❌ Error retrieving chunks by document ID:`, error);
       throw error;
@@ -147,7 +162,7 @@ class ChunkRetrievalService {
    */
   async getChunkPreview(chatbotId, chunkId, maxLength = 200) {
     try {
-      const { data: chunk, error } = await chunkStorage.supabase
+      const { data: chunk, error } = await this.chunkStorage.supabase
         .from("chatbot_knowledge_chunks")
         .select("id, chunk_index, content, document_section, chunk_type")
         .eq("chatbot_id", chatbotId)
@@ -163,10 +178,11 @@ class ChunkRetrievalService {
         chunk_index: chunk.chunk_index,
         document_section: chunk.document_section,
         chunk_type: chunk.chunk_type,
-        preview: chunk.content.substring(0, maxLength) + (chunk.content.length > maxLength ? "..." : ""),
-        full_length: chunk.content.length
+        preview:
+          chunk.content.substring(0, maxLength) +
+          (chunk.content.length > maxLength ? "..." : ""),
+        full_length: chunk.content.length,
       };
-
     } catch (error) {
       console.error(`❌ Error getting chunk preview:`, error);
       return null;
@@ -183,8 +199,8 @@ class ChunkRetrievalService {
       return [];
     }
 
-    return chunkIds.filter(id => {
-      if (typeof id !== 'string' || id.trim().length === 0) {
+    return chunkIds.filter((id) => {
+      if (typeof id !== "string" || id.trim().length === 0) {
         console.warn(`⚠️ Invalid chunk ID: ${id}`);
         return false;
       }
@@ -199,7 +215,7 @@ class ChunkRetrievalService {
    * @returns {Array} Ordered chunks
    */
   orderChunksByRequestedIds(chunks, requestedIds) {
-    const chunkMap = new Map(chunks.map(chunk => [chunk.id, chunk]));
+    const chunkMap = new Map(chunks.map((chunk) => [chunk.id, chunk]));
     const orderedChunks = [];
 
     for (const id of requestedIds) {
@@ -222,7 +238,7 @@ class ChunkRetrievalService {
   parseHeadingContext(headingContext) {
     if (!headingContext) return [];
     if (Array.isArray(headingContext)) return headingContext;
-    
+
     try {
       return JSON.parse(headingContext);
     } catch (error) {
@@ -237,7 +253,7 @@ class ChunkRetrievalService {
    * @returns {number} Word count
    */
   countWords(text) {
-    if (!text || typeof text !== 'string') return 0;
+    if (!text || typeof text !== "string") return 0;
     return text.trim().split(/\s+/).length;
   }
 
@@ -248,7 +264,7 @@ class ChunkRetrievalService {
    */
   async getChunksStats(chatbotId) {
     try {
-      const { data, error } = await chunkStorage.supabase
+      const { data, error } = await this.chunkStorage.supabase
         .from("chatbot_knowledge_chunks")
         .select("id, content_length, word_count, chunk_type, document_section")
         .eq("chatbot_id", chatbotId);
@@ -258,18 +274,29 @@ class ChunkRetrievalService {
       }
 
       const chunks = data || [];
-      
+
       return {
         total_chunks: chunks.length,
-        total_characters: chunks.reduce((sum, chunk) => sum + (chunk.content_length || 0), 0),
-        total_words: chunks.reduce((sum, chunk) => sum + (chunk.word_count || 0), 0),
-        chunk_types: this.groupBy(chunks, 'chunk_type'),
-        document_sections: this.groupBy(chunks, 'document_section'),
-        average_chunk_size: chunks.length > 0 
-          ? Math.round(chunks.reduce((sum, chunk) => sum + (chunk.content_length || 0), 0) / chunks.length)
-          : 0
+        total_characters: chunks.reduce(
+          (sum, chunk) => sum + (chunk.content_length || 0),
+          0
+        ),
+        total_words: chunks.reduce(
+          (sum, chunk) => sum + (chunk.word_count || 0),
+          0
+        ),
+        chunk_types: this.groupBy(chunks, "chunk_type"),
+        document_sections: this.groupBy(chunks, "document_section"),
+        average_chunk_size:
+          chunks.length > 0
+            ? Math.round(
+                chunks.reduce(
+                  (sum, chunk) => sum + (chunk.content_length || 0),
+                  0
+                ) / chunks.length
+              )
+            : 0,
       };
-
     } catch (error) {
       console.error(`❌ Error getting chunks stats:`, error);
       throw error;
@@ -284,7 +311,7 @@ class ChunkRetrievalService {
    */
   groupBy(array, property) {
     return array.reduce((groups, item) => {
-      const key = item[property] || 'unknown';
+      const key = item[property] || "unknown";
       groups[key] = (groups[key] || 0) + 1;
       return groups;
     }, {});

@@ -22,7 +22,7 @@ const initializeGeminiModel = (
   // Validate and sanitize inputs and use stable model names
   let validModelName = "gemini-1.5-flash"; // Default to stable model
 
-  if (modelName && typeof modelName === "string") {
+  if (modelName && typeof modelName === "string" && modelName.trim() !== "") {
     // Map problematic model names to stable ones
     if (
       modelName.includes("gemini-2.5-flash-preview") ||
@@ -36,6 +36,10 @@ const initializeGeminiModel = (
     } else {
       validModelName = "gemini-1.5-flash"; // Fallback to stable model
     }
+  } else {
+    console.log(
+      `⚠️ Invalid model name provided: ${modelName}, using fallback: ${validModelName}`
+    );
   }
 
   const validTemperature = typeof temperature === "number" ? temperature : 0.7;
@@ -47,15 +51,28 @@ const initializeGeminiModel = (
   );
 
   try {
-    // Simplify the constructor to avoid the error
-    return new ChatGoogleGenerativeAI({
+    // Simplified configuration to avoid LangChain parameter issues
+    const config = {
       apiKey: process.env.GEMINI_API_KEY,
       modelName: validModelName,
       temperature: validTemperature,
-      maxOutputTokens: validMaxTokens,
+    };
+
+    console.log(`🔧 Creating ChatGoogleGenerativeAI with minimal config:`, {
+      modelName: config.modelName,
+      temperature: config.temperature,
+      hasApiKey: !!config.apiKey,
     });
+
+    return new ChatGoogleGenerativeAI(config);
   } catch (error) {
     console.error("Error initializing LangChain Gemini model:", error);
+    console.error("Error details:", {
+      modelName: validModelName,
+      temperature: validTemperature,
+      maxOutputTokens: validMaxTokens,
+      hasApiKey: !!process.env.GEMINI_API_KEY,
+    });
     throw new Error(`Failed to initialize Gemini model: ${error.message}`);
   }
 };

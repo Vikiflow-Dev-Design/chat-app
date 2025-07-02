@@ -287,9 +287,11 @@ router.post("/message", async (req, res) => {
     let useIntelligentRAG = true;
 
     try {
-      console.log("🔍 Step 1: Attempting Intelligent RAG System...");
+      console.log(
+        "🔍 Step 1: Processing with LLM-Driven Intelligent RAG System..."
+      );
 
-      // Try our new Intelligent RAG system first
+      // Use our LLM-driven Intelligent RAG system (no embeddings)
       ragResponse = await intelligentRAG.processQuery(
         chatbot._id.toString(),
         content,
@@ -300,13 +302,9 @@ router.post("/message", async (req, res) => {
       console.log(`📊 Response Type: ${ragResponse.response_type}`);
       console.log(`🔄 Fallback Used: ${ragResponse.fallback_used}`);
 
-      if (
-        ragResponse.success &&
-        !ragResponse.fallback_used &&
-        ragResponse.chunks_used
-      ) {
+      if (ragResponse.success && ragResponse.chunks_used) {
         console.log(
-          `📦 Step 3: Using Intelligent RAG - ${ragResponse.chunks_used.length} chunks found`
+          `📦 Step 3: LLM Selected ${ragResponse.chunks_used.length} relevant chunks`
         );
         ragResponse.chunks_used.forEach((chunk, idx) => {
           console.log(
@@ -319,41 +317,30 @@ router.post("/message", async (req, res) => {
         knowledgeInfo = `Relevant Information:\n${ragResponse.answer}`;
         useIntelligentRAG = true;
 
-        console.log("🎯 Step 4: Will use Intelligent RAG answer directly");
-      } else {
         console.log(
-          "🔄 Step 3: Intelligent RAG fallback detected, trying legacy system..."
+          "🎯 Step 4: Using LLM-selected chunks and generated answer"
         );
+      } else if (ragResponse.fallback_used) {
+        console.log(
+          "🔄 Step 3: Using behavior prompt fallback (no relevant chunks found)"
+        );
+        useIntelligentRAG = false;
+      } else {
+        console.log("⚠️ Step 3: Unexpected RAG response, using fallback");
         useIntelligentRAG = false;
       }
     } catch (intelligentRAGError) {
       console.error("❌ Intelligent RAG Error:", intelligentRAGError.message);
-      console.log("🔄 Falling back to legacy knowledge search...");
+      console.log("🔄 Falling back to behavior prompt only...");
       useIntelligentRAG = false;
     }
 
-    // Fallback to legacy system if intelligent RAG didn't work
+    // No legacy fallback - we rely entirely on LLM-driven approach
     if (!useIntelligentRAG) {
-      try {
-        console.log("🔍 Step 5: Using Legacy Knowledge Search...");
-        const relevantKnowledge = await searchKnowledgeBase(
-          content,
-          chatbot._id,
-          sessionId
-        );
-        if (relevantKnowledge) {
-          knowledgeInfo = relevantKnowledge;
-          console.log("✅ Legacy knowledge search found relevant content");
-          console.log(
-            `📄 Content length: ${relevantKnowledge.length} characters`
-          );
-        } else {
-          console.log("❌ Legacy knowledge search found no relevant content");
-        }
-      } catch (error) {
-        console.error("❌ Error in legacy knowledge search:", error);
-        console.log("⚠️ Continuing without knowledge base info");
-      }
+      console.log(
+        "� Step 5: No relevant chunks found, will use behavior prompt only"
+      );
+      knowledgeInfo = ""; // No knowledge info, will rely on behavior prompt
     }
 
     console.log("🏁 ===== INTELLIGENT RAG FLOW END =====");
@@ -364,16 +351,16 @@ router.post("/message", async (req, res) => {
 
     let replyText;
 
-    // If we have a successful intelligent RAG response, use it directly
+    // Generate response based on LLM-driven RAG results
     if (
       useIntelligentRAG &&
       ragResponse &&
       ragResponse.success &&
-      !ragResponse.fallback_used
+      ragResponse.answer
     ) {
-      console.log("🚀 Using Intelligent RAG answer directly");
+      console.log("🚀 Using LLM-Generated RAG Answer Directly");
       replyText = ragResponse.answer;
-      console.log(`📝 Direct RAG Answer: "${replyText.substring(0, 100)}..."`);
+      console.log(`📝 LLM RAG Answer: "${replyText.substring(0, 100)}..."`);
     } else {
       // Generate response using LangChain with knowledge info
       try {
@@ -607,9 +594,11 @@ router.post("/playground", async (req, res) => {
     let useIntelligentRAG = true;
 
     try {
-      console.log("🔍 Playground Step 1: Attempting Intelligent RAG System...");
+      console.log(
+        "🔍 Playground Step 1: Processing with LLM-Driven Intelligent RAG..."
+      );
 
-      // Try our new Intelligent RAG system first
+      // Use our LLM-driven Intelligent RAG system (no embeddings)
       ragResponse = await intelligentRAG.processQuery(
         chatbot._id.toString(),
         message,
@@ -620,18 +609,17 @@ router.post("/playground", async (req, res) => {
       console.log(`📊 Response Type: ${ragResponse.response_type}`);
       console.log(`🔄 Fallback Used: ${ragResponse.fallback_used}`);
 
-      if (
-        ragResponse.success &&
-        !ragResponse.fallback_used &&
-        ragResponse.chunks_used
-      ) {
+      if (ragResponse.success && ragResponse.chunks_used) {
         console.log(
-          `📦 Playground Step 3: Using Intelligent RAG - ${ragResponse.chunks_used.length} chunks found`
+          `📦 Playground Step 3: LLM Selected ${ragResponse.chunks_used.length} relevant chunks`
         );
         useIntelligentRAG = true;
+      } else if (ragResponse.fallback_used) {
+        console.log("🔄 Playground Step 3: Using behavior prompt fallback");
+        useIntelligentRAG = false;
       } else {
         console.log(
-          "🔄 Playground Step 3: Intelligent RAG fallback detected, trying legacy system..."
+          "⚠️ Playground Step 3: Unexpected RAG response, using fallback"
         );
         useIntelligentRAG = false;
       }
@@ -640,30 +628,16 @@ router.post("/playground", async (req, res) => {
         "❌ Playground Intelligent RAG Error:",
         intelligentRAGError.message
       );
-      console.log("🔄 Falling back to legacy knowledge search...");
+      console.log("🔄 Falling back to behavior prompt only...");
       useIntelligentRAG = false;
     }
 
-    // Fallback to legacy system if intelligent RAG didn't work
+    // No legacy fallback - we rely entirely on LLM-driven approach
     if (!useIntelligentRAG) {
-      try {
-        console.log("🔍 Playground Step 4: Using Legacy Knowledge Search...");
-        const playgroundConversationId = `playground_${chatbotId}_${Date.now()}`;
-        const relevantKnowledge = await searchKnowledgeBase(
-          message,
-          chatbot._id,
-          playgroundConversationId
-        );
-        if (relevantKnowledge) {
-          knowledgeInfo = relevantKnowledge;
-          console.log("✅ Legacy knowledge search found relevant content");
-        } else {
-          console.log("❌ Legacy knowledge search found no relevant content");
-        }
-      } catch (error) {
-        console.error("❌ Error in legacy knowledge search:", error);
-        console.log("⚠️ Continuing without knowledge base info");
-      }
+      console.log(
+        "� Playground Step 4: No relevant chunks found, will use behavior prompt only"
+      );
+      knowledgeInfo = ""; // No knowledge info, will rely on behavior prompt
     }
 
     console.log("🏁 ===== PLAYGROUND INTELLIGENT RAG FLOW END =====");
@@ -691,7 +665,7 @@ router.post("/playground", async (req, res) => {
       useIntelligentRAG &&
       ragResponse &&
       ragResponse.success &&
-      !ragResponse.fallback_used
+      ragResponse.answer
     ) {
       console.log("🚀 Playground: Using Intelligent RAG answer directly");
       replyText = ragResponse.answer;
@@ -750,7 +724,7 @@ router.post("/playground", async (req, res) => {
           },
         };
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${chatbot.model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
 
         let response;
         try {
@@ -758,6 +732,7 @@ router.post("/playground", async (req, res) => {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "X-goog-api-key": process.env.GEMINI_API_KEY,
             },
             body: JSON.stringify(requestPayload),
           });
