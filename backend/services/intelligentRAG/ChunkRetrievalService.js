@@ -79,7 +79,6 @@ class ChunkRetrievalService {
         heading_context: this.parseHeadingContext(chunk.heading_context),
         content_length: chunk.content_length || chunk.content?.length || 0,
         word_count: chunk.word_count || this.countWords(chunk.content),
-        metadata: chunk.metadata || {},
         created_at: chunk.created_at,
         updated_at: chunk.updated_at,
       }));
@@ -132,7 +131,8 @@ class ChunkRetrievalService {
           heading_context,
           content_length,
           word_count,
-          metadata
+          created_at,
+          updated_at
         `
         )
         .eq("chatbot_id", chatbotId)
