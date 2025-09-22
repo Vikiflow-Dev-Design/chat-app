@@ -55,6 +55,7 @@ class IntelligentRAGService {
         `🤖 Processing intelligent RAG query for chatbot: ${chatbotId}`
       );
       console.log(`📝 User query: "${userQuery}"`);
+      console.log(`🔍 DEBUG: Starting query analysis flow`);
 
       const startTime = Date.now();
 
@@ -62,20 +63,26 @@ class IntelligentRAGService {
       const metadataCache = await this.metadataCache.getMetadataCache(
         chatbotId
       );
+      console.log(`✅ Metadata cache: ${metadataCache.totalChunks} chunks available`);
 
       if (metadataCache.totalChunks === 0) {
         console.log(`📭 No chunks available for chatbot: ${chatbotId}`);
-        return this.handleFallback(userQuery, behaviorPrompt, "no_chunks");
+        console.log(`🔍 DEBUG: Going to handleFallback with reason: no_chunks`);
+        return this.handleFallback(userQuery, behaviorPrompt, "no_chunks", chatbotId);
       }
 
       // Step 2: Analyze query with LLM
+      console.log(`🔍 DEBUG: Sending query to LLM for analysis`);
       const analysisResult = await this.analyzeQueryWithLLM(
         userQuery,
         metadataCache
       );
 
+      console.log(`🔍 DEBUG: LLM analysis result type: ${analysisResult.type}`);
+
       // Step 3: Handle different response types
       if (analysisResult.type === "function_call") {
+        console.log(`🔍 DEBUG: Going to handleFunctionCall`);
         return await this.handleFunctionCall(
           chatbotId,
           userQuery,
@@ -84,12 +91,15 @@ class IntelligentRAGService {
           startTime
         );
       } else if (analysisResult.type === "fallback") {
+        console.log(`🔍 DEBUG: Going to handleFallback with reason: no_relevant_metadata`);
         return this.handleFallback(
           userQuery,
           behaviorPrompt,
-          "no_relevant_metadata"
+          "no_relevant_metadata",
+          chatbotId
         );
       } else if (analysisResult.type === "clarification") {
+        console.log(`🔍 DEBUG: Going to handleClarificationRequest`);
         return this.handleClarificationRequest(
           userQuery,
           analysisResult.message
@@ -97,10 +107,12 @@ class IntelligentRAGService {
       }
 
       // Default fallback
+      console.log(`🔍 DEBUG: Going to default handleFallback with reason: unknown_response_type`);
       return this.handleFallback(
         userQuery,
         behaviorPrompt,
-        "unknown_response_type"
+        "unknown_response_type",
+        chatbotId
       );
     } catch (error) {
       console.error(`❌ Error processing intelligent RAG query:`, error);
@@ -187,6 +199,8 @@ class IntelligentRAGService {
       const textParts = responseData?.parts?.filter((part) => part.text);
       const responseText = textParts?.[0]?.text?.trim() || "";
 
+      console.log(`🔍 DEBUG: LLM Analysis Response Text: "${responseText}"`);
+
       if (responseText.includes("FALLBACK_TO_BEHAVIOR")) {
         console.log(`🔄 LLM requested fallback to behavior prompt`);
         return { type: "fallback" };
@@ -201,7 +215,7 @@ class IntelligentRAGService {
       }
 
       // If we get here, treat as fallback
-      console.log(`🤔 Unexpected LLM response, falling back`);
+      console.log(`🤔 Unexpected LLM response, falling back. Response was: "${responseText}"`);
       return { type: "fallback" };
     } catch (error) {
       console.error(`❌ Error analyzing query with LLM:`, error);
@@ -245,13 +259,22 @@ ANALYSIS INSTRUCTIONS:
    - Consider: topics, keywords, entities, document sections, question types, and audience
    - Prioritize chunks that directly address the user's question
    - Include related chunks that provide context (same document_section or sequential chunks)
+   - IMPORTANT: NEVER use this for identity questions about the AI itself
 
-2. **NO RELEVANT CONTENT**: If no chunks in the knowledge base can help answer the query:
+2. **NO RELEVANT CONTENT OR GENERIC QUERIES**: If no chunks can help answer the query, OR if it's a greeting, casual conversation, identity question, or general question:
    - Respond with exactly "FALLBACK_TO_BEHAVIOR"
-   - This will use the chatbot's general behavior prompt
+   - This includes:
+     * Greetings: "hello", "hi", "good morning"
+     * Identity questions: "who are you", "what are you", "who created you" - ALWAYS use fallback for these, NEVER search knowledge base
+     * Casual conversation: "how are you", "thank you"
+     * Help questions: "what can you help with", "what do you do"
+     * Role reversal: "what can i do for you", "how can i help you"
+     * Topics completely outside the knowledge base: TV, animals, weather, cooking, etc.
+   - This will use the chatbot's general behavior prompt for natural, conversational responses
 
-3. **UNCLEAR QUERY**: If the query is vague, ambiguous, or just a greeting:
+3. **TRULY UNCLEAR QUERY**: Only if the query is completely incomprehensible or garbled:
    - Respond with "REQUEST_CLARIFICATION: [helpful message asking for more specific information]"
+   - Use this sparingly - most queries should either find relevant chunks or use behavior fallback
 
 ANALYSIS APPROACH:
 - Match query intent with chunk topics and keywords
@@ -306,7 +329,8 @@ Analyze the user query against the available metadata and determine the best res
         return this.handleFallback(
           userQuery,
           behaviorPrompt,
-          "chunks_not_found"
+          "chunks_not_found",
+          chatbotId
         );
       }
 
@@ -349,7 +373,8 @@ Analyze the user query against the available metadata and determine the best res
       return this.handleFallback(
         userQuery,
         behaviorPrompt,
-        "function_call_error"
+        "function_call_error",
+        chatbotId
       );
     }
   }
@@ -437,27 +462,13 @@ Answer:`;
   }
 
   /**
-   * Handle fallback to behavior prompt
+   * Generate behavior prompt response for generic queries
    * @param {string} userQuery - User's question
    * @param {string} behaviorPrompt - Behavior prompt
-   * @param {string} reason - Reason for fallback
-   * @returns {Object} Fallback response
+   * @returns {Promise<string>} Generated response
    */
-  async handleFallback(userQuery, behaviorPrompt, reason) {
+  async generateBehaviorPromptResponse(userQuery, behaviorPrompt) {
     try {
-      console.log(`🔄 Falling back to behavior prompt. Reason: ${reason}`);
-
-      if (!behaviorPrompt) {
-        return {
-          success: true,
-          answer:
-            "I don't have specific information about that topic in my knowledge base. Is there something else I can help you with?",
-          fallback_used: true,
-          response_type: "default_fallback",
-          reason: reason,
-        };
-      }
-
       const prompt = `${behaviorPrompt}
 
 User: "${userQuery}"
@@ -504,17 +515,107 @@ Respond according to your defined behavior and personality.`;
       const result = await response.json();
       const answer = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
+      return answer || "I apologize, but I couldn't generate a response right now.";
+    } catch (error) {
+      console.error(`❌ Error generating behavior prompt response:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced fallback with dynamic responses
+   * @param {string} userQuery - User's question
+   * @param {string} behaviorPrompt - Behavior prompt
+   * @param {string} reason - Reason for fallback
+   * @param {string} chatbotId - Chatbot ID for analysis
+   * @returns {Object} Fallback response
+   */
+  async handleFallback(userQuery, behaviorPrompt, reason, chatbotId = null) {
+    try {
+      console.log(`🔄 Enhanced fallback processing. Reason: ${reason}`);
+      console.log(`🔍 DEBUG: User query: "${userQuery}"`);
+      console.log(`🔍 DEBUG: Chatbot ID: ${chatbotId}`);
+      console.log(`🔍 DEBUG: Behavior prompt length: ${behaviorPrompt?.length || 0}`);
+
+      // Get fresh analysis each time (no caching)
+      const knowledgeAnalysis = chatbotId ?
+        await this.analyzeKnowledgeBaseFromMetadata(chatbotId) :
+        { topics: [], keywords: [], totalChunks: 0 };
+
+      console.log(`🔍 DEBUG: Knowledge analysis - Topics: ${knowledgeAnalysis.topics.length}, Keywords: ${knowledgeAnalysis.keywords.length}, Chunks: ${knowledgeAnalysis.totalChunks}`);
+
+      let dynamicResponse = '';
+      const queryLower = userQuery.toLowerCase().trim();
+
+      // Check for identity questions
+      if (queryLower.includes('who are you') ||
+          queryLower.includes('what are you') ||
+          queryLower.includes('who created you') ||
+          queryLower.includes('what is your name')) {
+        console.log('🤖 TRIGGERED: Dynamic identity response');
+        dynamicResponse = this.generateDynamicIdentity(knowledgeAnalysis);
+
+      // Check for help/capability questions
+      } else if (queryLower.includes('what can you help') ||
+                 queryLower.includes('what do you do') ||
+                 queryLower.includes('what can you assist') ||
+                 queryLower.includes('what should i ask') ||
+                 queryLower.includes('what can you do') ||
+                 queryLower.includes('what are you capable') ||
+                 queryLower.includes('what can you help with') ||
+                 queryLower.includes('what can you help me with') ||
+                 queryLower.includes('what topics can you') ||
+                 queryLower.includes('what subjects can you') ||
+                 queryLower.includes('what can i ask you') ||
+                 queryLower.includes('what can i ask about') ||
+                 queryLower.includes('what can i do for you')) {
+        console.log('🎯 TRIGGERED: Dynamic help suggestions');
+        const suggestions = this.generateHelpSuggestions(knowledgeAnalysis);
+        dynamicResponse = `I can help you with several things:\n\n${suggestions.join('\n')}\n\nWhat would you like to know about?`;
+
+      // Check for role reversal questions (when user offers to help the AI)
+      } else if (queryLower.includes('how can i help you') ||
+                 queryLower.includes('how may i help you') ||
+                 queryLower.includes('can i help you') ||
+                 queryLower.includes('is there anything i can do for you')) {
+        console.log('🔄 TRIGGERED: Role reversal handling');
+        dynamicResponse = "That's very kind of you to ask! As an AI, I don't need help, but I appreciate the thoughtfulness. Is there anything I can help you with instead?";
+
+      // Check for out-of-domain questions that should be handled with boundaries
+      } else if (this.isOutOfDomainQuery(queryLower)) {
+        console.log('🚫 TRIGGERED: Out-of-domain boundary response');
+        dynamicResponse = "I don't have specific information about that topic. I'm designed to help with questions related to the topics I've been trained on. Is there something else I can help you with?";
+
+      } else {
+        console.log('🔄 TRIGGERED: Behavior prompt for generic query');
+        console.log(`🔍 DEBUG: Query doesn't match any dynamic patterns, using behavior prompt`);
+        // Use behavior prompt for other generic queries, but override for out-of-domain
+        if (behaviorPrompt) {
+          dynamicResponse = await this.generateBehaviorPromptResponse(userQuery, behaviorPrompt);
+
+          // Override if behavior prompt tries to answer out-of-domain questions
+          if (this.isOutOfDomainQuery(queryLower) && this.responseAttemptsToAnswer(dynamicResponse)) {
+            console.log('🚫 OVERRIDE: Behavior prompt tried to answer out-of-domain query, setting boundaries');
+            dynamicResponse = "I don't have specific information about that topic. I'm designed to help with questions related to the topics I've been trained on. Is there something else I can help you with?";
+          }
+        } else {
+          dynamicResponse = "I'm here to help! Feel free to ask me any questions you have.";
+        }
+      }
+
+      console.log(`🔍 DEBUG: Generated response length: ${dynamicResponse.length}`);
+      console.log(`🔍 DEBUG: Response preview: "${dynamicResponse.substring(0, 100)}..."`)
+
       return {
         success: true,
-        answer:
-          answer ||
-          "I apologize, but I couldn't generate a response right now.",
+        answer: dynamicResponse,
         fallback_used: true,
-        response_type: "behavior_prompt_fallback",
+        response_type: "dynamic_fallback",
         reason: reason,
       };
+
     } catch (error) {
-      console.error(`❌ Error in fallback handling:`, error);
+      console.error(`❌ Error in enhanced fallback handling:`, error);
       return {
         success: false,
         answer:
@@ -543,6 +644,188 @@ Respond according to your defined behavior and personality.`;
       response_type: "clarification_request",
       original_query: userQuery,
     };
+  }
+
+  /**
+   * Analyze knowledge base from cached metadata (simplified)
+   * @param {string} chatbotId - Chatbot ID
+   * @returns {Promise<Object>} Analysis of available content
+   */
+  async analyzeKnowledgeBaseFromMetadata(chatbotId) {
+    try {
+      const metadataCache = await this.metadataCache.getMetadataCache(chatbotId);
+
+      const analysis = {
+        topics: new Set(),
+        keywords: new Set(),
+        totalChunks: metadataCache.totalChunks
+      };
+
+      metadataCache.chunks.forEach(chunk => {
+        // Simply collect all topics and keywords - no filtering/detection
+        chunk.topics?.forEach(topic => analysis.topics.add(topic));
+        chunk.keywords?.forEach(keyword => analysis.keywords.add(keyword));
+      });
+
+      return {
+        topics: Array.from(analysis.topics),
+        keywords: Array.from(analysis.keywords),
+        totalChunks: analysis.totalChunks
+      };
+    } catch (error) {
+      console.error('❌ Error analyzing knowledge base from metadata:', error);
+      return {
+        topics: [],
+        keywords: [],
+        totalChunks: 0
+      };
+    }
+  }
+
+  /**
+   * Generate dynamic identity response (natural language)
+   * @param {Object} knowledgeAnalysis - Analysis of knowledge base
+   * @returns {string} Dynamic identity response
+   */
+  generateDynamicIdentity(knowledgeAnalysis) {
+    const { topics, totalChunks } = knowledgeAnalysis;
+
+    if (topics.length > 0) {
+      // Natural, no mention of "knowledge base"
+      return `I'm an AI assistant here to help you with information and questions. I can assist with various topics and provide helpful answers.`;
+    } else {
+      return `I'm an AI assistant ready to help you with your questions and provide information on various topics.`;
+    }
+  }
+
+  /**
+   * Check if query is clearly out-of-domain
+   * @param {string} queryLower - Lowercase user query
+   * @returns {boolean} True if query is out-of-domain
+   */
+  isOutOfDomainQuery(queryLower) {
+    const outOfDomainKeywords = [
+      // Electronics/Technology (not in knowledge base)
+      'television', 'tv', 'turn on', 'turn off', 'remote control',
+      'computer', 'laptop', 'phone', 'smartphone', 'tablet',
+
+      // Animals/Biology
+      'animal', 'animals', 'dog', 'cat', 'bird', 'fish', 'pet',
+      'biology', 'species', 'mammal', 'reptile',
+
+      // Weather/Environment
+      'weather', 'temperature', 'rain', 'snow', 'sunny', 'cloudy',
+      'climate', 'forecast',
+
+      // Cooking/Food
+      'recipe', 'cooking', 'food', 'restaurant', 'meal', 'dinner',
+      'breakfast', 'lunch', 'kitchen',
+
+      // Sports/Entertainment
+      'sports', 'football', 'basketball', 'movie', 'film', 'music',
+      'game', 'play', 'entertainment',
+
+      // General knowledge that's clearly outside domain
+      'fastest man alive', 'president', 'country', 'capital city',
+      'history', 'geography', 'mathematics', 'physics', 'chemistry'
+    ];
+
+    return outOfDomainKeywords.some(keyword => queryLower.includes(keyword));
+  }
+
+  /**
+   * Check if response attempts to answer instead of setting boundaries
+   * @param {string} response - Generated response
+   * @returns {boolean} True if response attempts to answer
+   */
+  responseAttemptsToAnswer(response) {
+    const responseLower = response.toLowerCase();
+
+    // Signs that it's trying to answer instead of setting boundaries
+    const answerIndicators = [
+      'i can certainly help',
+      'the process is usually',
+      'you can',
+      'try',
+      'generally',
+      'usually',
+      'typically',
+      'here\'s how',
+      'first',
+      'step',
+      'instructions'
+    ];
+
+    // Signs that it's properly setting boundaries
+    const boundaryIndicators = [
+      'i don\'t have',
+      'outside my',
+      'not in my',
+      'designed to help with',
+      'training data',
+      'specific topics'
+    ];
+
+    const hasAnswerIndicators = answerIndicators.some(indicator => responseLower.includes(indicator));
+    const hasBoundaryIndicators = boundaryIndicators.some(indicator => responseLower.includes(indicator));
+
+    // If it has answer indicators but no boundary indicators, it's trying to answer
+    return hasAnswerIndicators && !hasBoundaryIndicators;
+  }
+
+  /**
+   * Generate auto-generated help suggestions (5 max, general but helpful)
+   * @param {Object} knowledgeAnalysis - Analysis of knowledge base
+   * @returns {Array<string>} Array of help suggestions
+   */
+  generateHelpSuggestions(knowledgeAnalysis) {
+    const { topics, keywords } = knowledgeAnalysis;
+
+    console.log(`🔍 DEBUG: Generating help suggestions - Topics: ${topics.length}, Keywords: ${keywords.length}`);
+    console.log(`🔍 DEBUG: Sample topics: ${topics.slice(0, 3).join(', ')}`);
+    console.log(`🔍 DEBUG: Sample keywords: ${keywords.slice(0, 3).join(', ')}`);
+
+    // Auto-generate from actual content, keep general
+    const suggestions = [];
+    const allContent = [...topics, ...keywords];
+
+    if (allContent.length === 0) {
+      console.log(`🔍 DEBUG: No content available, using default suggestions`);
+      return [
+        '• Ask me questions about various topics',
+        '• Get information and helpful answers',
+        '• Explore different subjects I can help with',
+        '• Request assistance with your inquiries',
+        '• Discover what I can help you learn'
+      ];
+    }
+
+    // Randomly select and generalize content into helpful suggestions
+    const shuffled = allContent.sort(() => 0.5 - Math.random());
+
+    for (let i = 0; i < Math.min(5, shuffled.length); i++) {
+      const item = shuffled[i];
+      // Convert specific items into general helpful suggestions
+      suggestions.push(`• Ask about ${item} related topics`);
+    }
+
+    // If we have less than 5, add some general ones
+    while (suggestions.length < 5 && suggestions.length < allContent.length) {
+      const remaining = allContent.filter(item =>
+        !suggestions.some(s => s.includes(item))
+      );
+      if (remaining.length > 0) {
+        const randomItem = remaining[Math.floor(Math.random() * remaining.length)];
+        suggestions.push(`• Learn more about ${randomItem}`);
+      } else {
+        break;
+      }
+    }
+
+    // Ensure we have exactly 5 or less
+    const finalSuggestions = suggestions.slice(0, 5);
+    console.log(`🔍 DEBUG: Generated ${finalSuggestions.length} suggestions: ${finalSuggestions.join(', ')}`);
+    return finalSuggestions;
   }
 
   /**

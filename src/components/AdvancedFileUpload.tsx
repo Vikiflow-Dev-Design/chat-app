@@ -34,6 +34,7 @@ import {
   ProcessingStatus
 } from '@/services/advancedRAGUploadService';
 import { uploadFile } from '@/services/fileUploadService';
+import SuggestionsPromptModal from '@/components/modals/SuggestionsPromptModal';
 
 interface AdvancedFileUploadProps {
   chatbotId: string;
@@ -67,6 +68,14 @@ export function AdvancedFileUpload({
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [useAdvancedRAGByDefault, setUseAdvancedRAGByDefault] = useState(true);
   const [advancedRAGAvailable, setAdvancedRAGAvailable] = useState<boolean | null>(null);
+
+  // Suggestions prompt modal state
+  const [showSuggestionsPrompt, setShowSuggestionsPrompt] = useState(false);
+  const [completedUpload, setCompletedUpload] = useState<{
+    documentName: string;
+    documentId: string;
+    result: any;
+  } | null>(null);
 
   // Check Advanced RAG availability on mount
   React.useEffect(() => {
@@ -244,6 +253,14 @@ export function AdvancedFileUpload({
           description: `${uploadingFile.file.name} processed with ${result.processingDetails.chunking.chunksCreated} chunks and ${result.processingDetails.storage.relationshipsCreated} relationships.`,
         });
 
+        // Show suggestions prompt modal
+        setCompletedUpload({
+          documentName: uploadingFile.file.name,
+          documentId: result.processingDetails.storage.supabaseDocumentId,
+          result
+        });
+        setShowSuggestionsPrompt(true);
+
         if (onUploadComplete) {
           onUploadComplete(result);
         }
@@ -273,6 +290,14 @@ export function AdvancedFileUpload({
           title: "File Upload Complete",
           description: `${uploadingFile.file.name} uploaded successfully.`,
         });
+
+        // Show suggestions prompt modal for legacy uploads too
+        setCompletedUpload({
+          documentName: uploadingFile.file.name,
+          documentId: result.knowledge?.files?.[result.knowledge.files.length - 1]?._id || 'legacy-upload',
+          result
+        });
+        setShowSuggestionsPrompt(true);
 
         if (onUploadComplete) {
           onUploadComplete(result);
@@ -486,6 +511,20 @@ export function AdvancedFileUpload({
           )}
         </CardContent>
       </Card>
+
+      {/* Suggestions Prompt Modal */}
+      {completedUpload && (
+        <SuggestionsPromptModal
+          isOpen={showSuggestionsPrompt}
+          onClose={() => {
+            setShowSuggestionsPrompt(false);
+            setCompletedUpload(null);
+          }}
+          documentName={completedUpload.documentName}
+          documentId={completedUpload.documentId}
+          chatbotId={chatbotId}
+        />
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ const knowledgeRoutes = require("../routes/knowledgeRoutes");
 const chatbotKnowledgeRoutes = require("../routes/chatbotKnowledgeRoutes");
 const agentTemplateRoutes = require("../routes/agentTemplateRoutes");
 const processFileRoute = require("../routes/processFileRoute");
+const suggestionsRoutes = require("../routes/suggestionsRoutes");
 
 // Initialize express app
 const app = express();
@@ -106,6 +107,7 @@ app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/chatbot-knowledge", chatbotKnowledgeRoutes);
 app.use("/api/chatbot-knowledge", processFileRoute); // Add the process-file route to the chatbot-knowledge path
 app.use("/api/agent-templates", agentTemplateRoutes);
+app.use("/api", suggestionsRoutes); // Document suggestions management
 
 // Root route
 app.get("/", (req, res) => {

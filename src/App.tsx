@@ -51,6 +51,7 @@ import NotionSourcesPage from "./pages/sources/NotionSourcesPage";
 import ProductsSourcesPage from "./pages/sources/ProductsSourcesPage";
 import { KnowledgeManagementPage } from "./pages/KnowledgeManagementPage";
 import { ChunkDetailsPage } from "./pages/ChunkDetailsPage";
+import DocumentSuggestions from "./pages/DocumentSuggestions";
 
 const queryClient = new QueryClient();
 
@@ -170,6 +171,10 @@ const App = () => {
                     <Route
                       path="knowledge-management"
                       element={<KnowledgeManagementPage />}
+                    />
+                    <Route
+                      path="knowledge-management/suggestions/:documentId"
+                      element={<DocumentSuggestions />}
                     />
                     <Route
                       path="chunk/:chunkId"

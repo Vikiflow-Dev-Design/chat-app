@@ -282,9 +282,7 @@ router.post("/message", async (req, res) => {
     console.log(`🤖 Chatbot ID: ${chatbot._id}`);
     console.log(`💬 Session ID: ${sessionId}`);
 
-    let knowledgeInfo = "";
     let ragResponse = null;
-    let useIntelligentRAG = true;
 
     try {
       console.log(
@@ -313,10 +311,6 @@ router.post("/message", async (req, res) => {
           console.log(`   📝 Preview: "${chunk.preview}"`);
         });
 
-        // Use the intelligent RAG answer directly
-        knowledgeInfo = `Relevant Information:\n${ragResponse.answer}`;
-        useIntelligentRAG = true;
-
         console.log(
           "🎯 Step 4: Using LLM-selected chunks and generated answer"
         );
@@ -324,23 +318,18 @@ router.post("/message", async (req, res) => {
         console.log(
           "🔄 Step 3: Using behavior prompt fallback (no relevant chunks found)"
         );
-        useIntelligentRAG = false;
       } else {
-        console.log("⚠️ Step 3: Unexpected RAG response, using fallback");
-        useIntelligentRAG = false;
+        console.log("⚠️ Step 3: Unexpected RAG response");
       }
     } catch (intelligentRAGError) {
       console.error("❌ Intelligent RAG Error:", intelligentRAGError.message);
-      console.log("🔄 Falling back to behavior prompt only...");
-      useIntelligentRAG = false;
-    }
-
-    // No legacy fallback - we rely entirely on LLM-driven approach
-    if (!useIntelligentRAG) {
-      console.log(
-        "� Step 5: No relevant chunks found, will use behavior prompt only"
-      );
-      knowledgeInfo = ""; // No knowledge info, will rely on behavior prompt
+      console.log("🔄 Will use default error response...");
+      ragResponse = {
+        success: false,
+        answer: "I apologize, but I encountered an error while processing your question. Please try again.",
+        fallback_used: true,
+        response_type: "error",
+      };
     }
 
     console.log("🏁 ===== INTELLIGENT RAG FLOW END =====");
@@ -351,119 +340,32 @@ router.post("/message", async (req, res) => {
 
     let replyText;
 
-    // Generate response based on LLM-driven RAG results
-    if (
-      useIntelligentRAG &&
-      ragResponse &&
-      ragResponse.success &&
-      ragResponse.answer
-    ) {
-      console.log("🚀 Using LLM-Generated RAG Answer Directly");
+    // 🚀 SIMPLIFIED: Let Intelligent RAG handle ALL queries (knowledge + generic)
+    if (ragResponse && ragResponse.success && ragResponse.answer) {
+      console.log("🚀 Using Intelligent RAG Answer (Knowledge-based)");
       replyText = ragResponse.answer;
-      console.log(`📝 LLM RAG Answer: "${replyText.substring(0, 100)}..."`);
+      console.log(`📝 RAG Answer: "${replyText.substring(0, 100)}..."`);
+    } else if (ragResponse && ragResponse.fallback_used && ragResponse.answer) {
+      console.log("🔄 Using Intelligent RAG Fallback (Generic/Behavior-based)");
+      replyText = ragResponse.answer;
+      console.log(`📝 Fallback Answer: "${replyText.substring(0, 100)}..."`);
     } else {
-      // Generate response using LangChain with knowledge info
-      try {
-        console.log("🔄 Generating response with LangChain");
-        console.log(`🤖 Model: ${chatbot.model}`);
-        console.log(`🌡️ Temperature: ${chatbot.temperature}`);
-        console.log(`🔢 Max tokens: ${chatbot.maxTokens}`);
-        console.log(
-          `📚 Knowledge info length: ${knowledgeInfo.length} characters`
-        );
+      console.log("⚠️ No valid response from Intelligent RAG, using default");
+      replyText = "I apologize, but I'm having trouble processing your request right now. Please try again.";
+    }
 
-        replyText = await generateResponse(
-          content,
-          conversationHistory,
-          chatbot,
-          knowledgeInfo,
-          productInfo
-        );
+    // Ensure replyText is a string
+    if (replyText === null || replyText === undefined) {
+      replyText = "I'm sorry, I couldn't generate a response at this time.";
+    }
 
-        console.log("✅ LangChain response generated successfully");
-      } catch (langchainError) {
-        console.error(
-          "❌ LangChain error, falling back to direct API call:",
-          langchainError.message
-        );
-        console.log("🔄 Attempting direct Gemini API call...");
+    // Convert to string if it's not already
+    if (typeof replyText !== "string") {
+      replyText = String(replyText);
+    }
 
-        // Fallback to direct API call if LangChain fails
-        const requestPayload = {
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text:
-                    chatbot.behaviorPrompt +
-                    (knowledgeInfo ? `\n\n${knowledgeInfo}` : "") +
-                    productInfo,
-                },
-              ],
-            },
-            ...conversationHistory.map((msg) => ({
-              role: msg.role === "assistant" ? "model" : "user",
-              parts: [{ text: msg.content }],
-            })),
-            {
-              role: "user",
-              parts: [{ text: content }],
-            },
-          ],
-          generationConfig: {
-            temperature: chatbot.temperature,
-            maxOutputTokens: chatbot.maxTokens,
-            topP: 0.8,
-            topK: 40,
-          },
-        };
-
-        console.log(
-          "Falling back to direct API call with model:",
-          chatbot.model
-        );
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${chatbot.model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-        console.log("API URL:", apiUrl);
-
-        let response;
-        try {
-          response = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestPayload),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Gemini API error response:", errorText);
-            throw new Error(
-              `Gemini API returned status ${response.status}: ${errorText}`
-            );
-          }
-        } catch (fetchError) {
-          console.error("Fetch error:", fetchError);
-          throw fetchError;
-        }
-
-        const responseData = await response.json();
-        replyText = responseData.candidates[0].content.parts[0].text;
-      }
-
-      // Ensure replyText is a string
-      if (replyText === null || replyText === undefined) {
-        replyText = "I'm sorry, I couldn't generate a response at this time.";
-      }
-
-      // Convert to string if it's not already
-      if (typeof replyText !== "string") {
-        replyText = String(replyText);
-      }
-
-      // Check if the response contains a function call
+    // Check if the response contains a function call
+    try {
       const functionCallMatch = replyText.match(
         /<function_call name="([^"]+)" arguments=({[^>]+})>/
       );
@@ -512,6 +414,9 @@ router.post("/message", async (req, res) => {
           }
         }
       }
+    } catch (functionCallError) {
+      console.error("Error processing function call:", functionCallError);
+      // Continue with the original response if function call processing fails
     }
 
     // Final response validation and logging
@@ -589,9 +494,7 @@ router.post("/playground", async (req, res) => {
     console.log(`📝 Playground Query: "${message}"`);
     console.log(`🤖 Chatbot ID: ${chatbot._id}`);
 
-    let knowledgeInfo = "";
     let ragResponse = null;
-    let useIntelligentRAG = true;
 
     try {
       console.log(
@@ -613,31 +516,23 @@ router.post("/playground", async (req, res) => {
         console.log(
           `📦 Playground Step 3: LLM Selected ${ragResponse.chunks_used.length} relevant chunks`
         );
-        useIntelligentRAG = true;
       } else if (ragResponse.fallback_used) {
         console.log("🔄 Playground Step 3: Using behavior prompt fallback");
-        useIntelligentRAG = false;
       } else {
-        console.log(
-          "⚠️ Playground Step 3: Unexpected RAG response, using fallback"
-        );
-        useIntelligentRAG = false;
+        console.log("⚠️ Playground Step 3: Unexpected RAG response");
       }
     } catch (intelligentRAGError) {
       console.error(
         "❌ Playground Intelligent RAG Error:",
         intelligentRAGError.message
       );
-      console.log("🔄 Falling back to behavior prompt only...");
-      useIntelligentRAG = false;
-    }
-
-    // No legacy fallback - we rely entirely on LLM-driven approach
-    if (!useIntelligentRAG) {
-      console.log(
-        "� Playground Step 4: No relevant chunks found, will use behavior prompt only"
-      );
-      knowledgeInfo = ""; // No knowledge info, will rely on behavior prompt
+      console.log("🔄 Will use default error response...");
+      ragResponse = {
+        success: false,
+        answer: "I apologize, but I encountered an error while processing your question. Please try again.",
+        fallback_used: true,
+        response_type: "error",
+      };
     }
 
     console.log("🏁 ===== PLAYGROUND INTELLIGENT RAG FLOW END =====");
@@ -660,98 +555,18 @@ router.post("/playground", async (req, res) => {
 
     let replyText;
 
-    // If we have a successful intelligent RAG response, use it directly
-    if (
-      useIntelligentRAG &&
-      ragResponse &&
-      ragResponse.success &&
-      ragResponse.answer
-    ) {
-      console.log("🚀 Playground: Using Intelligent RAG answer directly");
+    // 🚀 SIMPLIFIED: Let Intelligent RAG handle ALL playground queries
+    if (ragResponse && ragResponse.success && ragResponse.answer) {
+      console.log("🚀 Playground: Using Intelligent RAG Answer (Knowledge-based)");
       replyText = ragResponse.answer;
-      console.log(
-        `📝 Playground Direct RAG Answer: "${replyText.substring(0, 100)}..."`
-      );
+      console.log(`📝 Playground RAG Answer: "${replyText.substring(0, 100)}..."`);
+    } else if (ragResponse && ragResponse.fallback_used && ragResponse.answer) {
+      console.log("🔄 Playground: Using Intelligent RAG Fallback (Generic/Behavior-based)");
+      replyText = ragResponse.answer;
+      console.log(`📝 Playground Fallback Answer: "${replyText.substring(0, 100)}..."`);
     } else {
-      // Generate response using LangChain with knowledge info
-      try {
-        console.log("🔄 Playground: Generating response with LangChain");
-        console.log(`🤖 Model: ${chatbot.model}`);
-
-        replyText = await generateResponse(
-          message,
-          conversationHistory || [],
-          chatbot,
-          knowledgeInfo,
-          productInfo
-        );
-
-        console.log("✅ Playground LangChain response generated successfully");
-      } catch (langchainError) {
-        console.error(
-          "LangChain error, falling back to direct API call:",
-          langchainError
-        );
-
-        // Fallback to direct API call if LangChain fails
-        const requestPayload = {
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text:
-                    chatbot.behaviorPrompt +
-                    (knowledgeInfo ? `\n\n${knowledgeInfo}` : "") +
-                    productInfo,
-                },
-              ],
-            },
-            ...(conversationHistory || []).map((msg) => ({
-              role: msg.role === "assistant" ? "model" : "user",
-              parts: [{ text: msg.content }],
-            })),
-            {
-              role: "user",
-              parts: [{ text: message }],
-            },
-          ],
-          generationConfig: {
-            temperature: chatbot.temperature,
-            maxOutputTokens: chatbot.maxTokens,
-            topP: 0.8,
-            topK: 40,
-          },
-        };
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
-
-        let response;
-        try {
-          response = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-goog-api-key": process.env.GEMINI_API_KEY,
-            },
-            body: JSON.stringify(requestPayload),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Gemini API error response:", errorText);
-            throw new Error(
-              `Gemini API returned status ${response.status}: ${errorText}`
-            );
-          }
-        } catch (fetchError) {
-          console.error("Fetch error:", fetchError);
-          throw fetchError;
-        }
-
-        const responseData = await response.json();
-        replyText = responseData.candidates[0].content.parts[0].text;
-      }
+      console.log("⚠️ Playground: No valid response from Intelligent RAG, using default");
+      replyText = "I apologize, but I'm having trouble processing your request right now. Please try again.";
     }
 
     // Final playground response validation and logging

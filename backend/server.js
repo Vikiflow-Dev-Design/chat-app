@@ -15,6 +15,7 @@ const agentTemplateRoutes = require("./routes/agentTemplateRoutes");
 const processFileRoute = require("./routes/processFileRoute");
 const knowledgeManagementRoutes = require("./routes/knowledgeManagementRoutes");
 const intelligentRAGRoutes = require("./routes/intelligentRAGRoutes");
+const suggestionsRoutes = require("./routes/suggestionsRoutes");
 
 // Initialize express app
 const app = express();
@@ -92,6 +93,7 @@ app.use("/api/chatbot-knowledge", processFileRoute); // Add the process-file rou
 app.use("/api/chatbot-knowledge", require("./routes/advancedFileUploadRoute")); // Advanced RAG upload
 app.use("/api/knowledge-management", knowledgeManagementRoutes); // Knowledge management CRUD
 app.use("/api/intelligent-rag", intelligentRAGRoutes); // Intelligent RAG system
+app.use("/api", suggestionsRoutes); // Document suggestions management
 app.use("/api/agent-templates", agentTemplateRoutes);
 
 // Root route

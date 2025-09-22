@@ -20,6 +20,8 @@ import {
   BarChart3,
   Layers,
   Search,
+  Lightbulb,
+  Settings,
 } from "lucide-react";
 import {
   getKnowledgeOverview,
@@ -263,6 +265,41 @@ export function KnowledgeManagementPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Suggestions Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Lightbulb className="h-5 w-5 text-yellow-600" />
+                <span>Document Suggestions</span>
+              </CardTitle>
+              <CardDescription>
+                Generate and manage AI-powered question suggestions for your documents
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Create contextual question suggestions based on your document sections to help users discover relevant information.
+                </p>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => navigate(`suggestions/doc_${chatbotId}_sample`)}
+                    className="flex items-center gap-2"
+                    variant="default"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Manage Suggestions
+                  </Button>
+
+                  <div className="text-xs text-gray-500">
+                    Generate suggestions for document sections
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
